@@ -25,6 +25,8 @@ logging.basicConfig(level=logging.INFO)
 # Когда он откажется купить слона,
 # то мы уберем одну подсказку. Как будто что-то меняется :)
 sessionStorage = {}
+animals = ['слона', 'кролика', 'кота']
+current = 0
 
 
 @app.route('/', methods=['POST'])
@@ -56,6 +58,7 @@ def main():
 
 
 def handle_dialog(req, res):
+    global current
     user_id = req['session']['user_id']
 
     if req['session']['new']:
@@ -64,14 +67,16 @@ def handle_dialog(req, res):
         # Запишем подсказки, которые мы ему покажем в первый раз
 
         sessionStorage[user_id] = {
+            'current': 0,
             'suggests': [
                 "Не хочу.",
                 "Не буду.",
                 "Отстань!",
             ]
         }
+        animal = animals[sessionStorage[user_id]["current"]]
         # Заполняем текст ответа
-        res['response']['text'] = 'Привет! Купи слона!'
+        res['response']['text'] = f'Привет! Купи {animal}!'
         # Получим подсказки
         res['response']['buttons'] = get_suggests(user_id)
         return
@@ -84,19 +89,28 @@ def handle_dialog(req, res):
     # Если он написал 'ладно', 'куплю', 'покупаю', 'хорошо',
     # то мы считаем, что пользователь согласился.
     # Подумайте, всё ли в этом фрагменте написано "красиво"?
-    if req['request']['original_utterance'].lower() in [
+    user_text = req['request']['original_utterance'].lower()
+    animal = animals[sessionStorage[user_id]["current"]]
+    if ('куп' in user_text and 'не' not in user_text.split()) or req['request']['original_utterance'].lower() in [
         'ладно',
-        'куплю',
-        'покупаю',
         'хорошо'
     ]:
         # Пользователь согласился, прощаемся.
-        res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
-        res['response']['end_session'] = True
+        if sessionStorage[user_id]['current'] == len(animals) - 1:
+            res['response']['end_session'] = True
+            res['response']['text'] = f"{animal.capitalize()} можно найти на Яндекс.Маркете!"
+        else:
+            sessionStorage[user_id]['current'] += 1
+            old = animals[sessionStorage[user_id]["current"] - 1]
+            animal = animals[sessionStorage[user_id]["current"]]
+            # Получим подсказки
+            res['response']['buttons'] = get_suggests(user_id)
+            res['response']['text'] = f"{old.capitalize()} можно найти на Яндекс.Маркете! Купи {animal}!"
+
         return
 
     # Если нет, то убеждаем его купить слона!
-    res['response']['text'] = 'Все говорят "%s", а ты купи слона!' % (
+    res['response']['text'] = f'Все говорят "%s", а ты купи {animal}!' % (
         req['request']['original_utterance']
     )
     res['response']['buttons'] = get_suggests(user_id)
