@@ -7,7 +7,17 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO)
-sessionStorage = {}
+sessionStorage = {
+    'E8CE48D4050F69DC9457CAD77F0637CFF920653017BC98EA2ED0BA68978BE019':{
+            'cities': [ {
+                'title': 'Париж',
+                'imgs': ['1540737/a85f7166d351e5e8ec92', '1030494/c58e1c4c948099d394c2'],
+                'current_img': 0
+            }
+        ],
+            'current_city':0
+        }
+}
 
 
 @app.route('/', methods=['POST'])
@@ -52,6 +62,11 @@ def handle_dialog(req, res):
                 'title': 'Париж',
                 'imgs': ['1540737/a85f7166d351e5e8ec92', '1030494/c58e1c4c948099d394c2'],
                 'current_img': 0
+            },
+               {
+                'title': 'Москва',
+                'imgs': ['997614/b545bb607ed4ba6937c1', '1533899/12ede26b423a21640b82'],
+                'current_img': 0
             }
         ],
             'current_city':0
@@ -60,9 +75,10 @@ def handle_dialog(req, res):
         # Заполняем текст ответа
         res['response']['text'] = 'Привет!'
         # Получим подсказки
-        print(sessionStorage[user_id]['cities'])
-        city=random.choice(sessionStorage[user_id]['cities'])
-        print(city)
+        cities = sessionStorage[user_id]['cities']
+        sessionStorage[user_id]['current_city']=random.choice(range(len(cities)))
+        city = cities[sessionStorage[user_id]['current_city']]
+        print(0,city)
         res['response']['card'] = {}
         res['response']['card']['type'] = 'BigImage'
         res['response']['card']['title'] = ' Какой это город?'
@@ -71,56 +87,33 @@ def handle_dialog(req, res):
 
     # Сюда дойдем только, если пользователь не новый,
     # и разговор с Алисой уже был начат
-    # Обрабатываем ответ пользователя.
-    # В req['request']['original_utterance'] лежит весь текст,
-    # что нам прислал пользователь
-    # Если он написал 'ладно', 'куплю', 'покупаю', 'хорошо',
-    # то мы считаем, что пользователь согласился.
-    # Подумайте, всё ли в этом фрагменте написано "красиво"?
     user_text = req['request']['original_utterance'].lower()
     cities = sessionStorage[user_id]['cities']
     city = cities[sessionStorage[user_id]['current_city']]
-    if city['title'].lower() in user_text:
+    print(city)
+    if city['title'].lower() in get_city(req):
             res['response']['text'] = f"Ты угадал - это {city['title']}!"
-            city['current_img'] = (city['current_img']+1)%2 #след картинку
-            sessionStorage[user_id]['current_city']=random.choice(cities)
-            res['response']['end_session']=True
+            cities[sessionStorage[user_id]['current_city']]['current_img'] = (city['current_img']+1)%2 #след картинку
+            sessionStorage[user_id]['current_city']=random.choice(range(len(cities)))
+            city = cities[sessionStorage[user_id]['current_city']]
+            res['response']['card'] = {}
+            res['response']['card']['type'] = 'BigImage'
+            res['response']['card']['title'] = ' Какой это город?'
+            res['response']['card']['image_id'] = city['imgs'][city['current_img']]
+
     else:
             res['response']['text'] = f"Не угадал!"
 
     return
 
-    # Если нет, то убеждаем его купить слона!
-    res['response']['text'] = f'Все говорят "%s", а ты купи {animal}!' % (
-        req['request']['original_utterance']
-    )
-    res['response']['buttons'] = get_suggests(user_id)
 
 
-# Функция возвращает две подсказки для ответа.
-def get_suggests(user_id):
-    session = sessionStorage[user_id]
-
-    # Выбираем две первые подсказки из массива.
-    suggests = [
-        {'title': suggest, 'hide': True}
-        for suggest in session['suggests'][:2]
-    ]
-
-    # Убираем первую подсказку, чтобы подсказки менялись каждый раз.
-    session['suggests'] = session['suggests'][1:]
-    sessionStorage[user_id] = session
-
-    # Если осталась только одна подсказка, предлагаем подсказку
-    # со ссылкой на Яндекс.Маркет.
-    if len(suggests) < 2:
-        suggests.append({
-            "title": "Ладно",
-            "url": "https://market.yandex.ru/search?text=слон",
-            "hide": True
-        })
-
-    return suggests
+def get_city(req):
+    cities=[]
+    for item in req['request']['nlu']['entities']:
+        if item['type']=='YANDEX.GEO':
+            cities.append(item['value']['city'])
+    return cities
 
 
 if __name__ == '__main__':
