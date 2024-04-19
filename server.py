@@ -1,32 +1,13 @@
 # импортируем библиотеки
-from flask import Flask, request, jsonify
 import logging
+import random
 
-# создаём приложение
-# мы передаём __name__, в нём содержится информация,
-# в каком модуле мы находимся.
-# В данном случае там содержится '__main__',
-# так как мы обращаемся к переменной из запущенного модуля.
-# если бы такое обращение, например, произошло внутри модуля logging,
-# то мы бы получили 'logging'
+from flask import Flask, request, jsonify
+
 app = Flask(__name__)
 
-# Устанавливаем уровень логирования
 logging.basicConfig(level=logging.INFO)
-
-# Создадим словарь, чтобы для каждой сессии общения с навыком хранились
-# подсказки, которые видел пользователь.
-# Это поможет нам немного разнообразить подсказки ответов
-# (buttons в JSON ответа).
-# Когда новый пользователь напишет нашему навыку, то мы сохраним
-# в этот словарь запись формата
-# sessionStorage[user_id] = {'suggests': ["Не хочу.", "Не буду.", "Отстань!"]}
-# Такая запись говорит, что мы показали пользователю эти три подсказки.
-# Когда он откажется купить слона,
-# то мы уберем одну подсказку. Как будто что-то меняется :)
 sessionStorage = {}
-animals = ['слона', 'кролика', 'кота']
-current = 0
 
 
 @app.route('/', methods=['POST'])
@@ -67,18 +48,25 @@ def handle_dialog(req, res):
         # Запишем подсказки, которые мы ему покажем в первый раз
 
         sessionStorage[user_id] = {
-            'current': 0,
-            'suggests': [
-                "Не хочу.",
-                "Не буду.",
-                "Отстань!",
-            ]
+            'cities': [ {
+                'title': 'Париж',
+                'imgs': ['1540737/a85f7166d351e5e8ec92', '1030494/c58e1c4c948099d394c2'],
+                'current_img': 0
+            }
+        ],
+            'current_city':0
         }
-        animal = animals[sessionStorage[user_id]["current"]]
+
         # Заполняем текст ответа
-        res['response']['text'] = f'Привет! Купи {animal}!'
+        res['response']['text'] = 'Привет!'
         # Получим подсказки
-        res['response']['buttons'] = get_suggests(user_id)
+        print(sessionStorage[user_id]['cities'])
+        city=random.choice(sessionStorage[user_id]['cities'])
+        print(city)
+        res['response']['card'] = {}
+        res['response']['card']['type'] = 'BigImage'
+        res['response']['card']['title'] = ' Какой это город?'
+        res['response']['card']['image_id'] = city['imgs'][city['current_img']]
         return
 
     # Сюда дойдем только, если пользователь не новый,
@@ -90,24 +78,17 @@ def handle_dialog(req, res):
     # то мы считаем, что пользователь согласился.
     # Подумайте, всё ли в этом фрагменте написано "красиво"?
     user_text = req['request']['original_utterance'].lower()
-    animal = animals[sessionStorage[user_id]["current"]]
-    if ('куп' in user_text and 'не' not in user_text.split()) or req['request']['original_utterance'].lower() in [
-        'ладно',
-        'хорошо'
-    ]:
-        # Пользователь согласился, прощаемся.
-        if sessionStorage[user_id]['current'] == len(animals) - 1:
-            res['response']['end_session'] = True
-            res['response']['text'] = f"{animal.capitalize()} можно найти на Яндекс.Маркете!"
-        else:
-            sessionStorage[user_id]['current'] += 1
-            old = animals[sessionStorage[user_id]["current"] - 1]
-            animal = animals[sessionStorage[user_id]["current"]]
-            # Получим подсказки
-            res['response']['buttons'] = get_suggests(user_id)
-            res['response']['text'] = f"{old.capitalize()} можно найти на Яндекс.Маркете! Купи {animal}!"
+    cities = sessionStorage[user_id]['cities']
+    city = cities[sessionStorage[user_id]['current_city']]
+    if city['title'].lower() in user_text:
+            res['response']['text'] = f"Ты угадал - это {city['title']}!"
+            city['current_img'] = (city['current_img']+1)%2 #след картинку
+            sessionStorage[user_id]['current_city']=random.choice(cities)
+            res['response']['end_session']=True
+    else:
+            res['response']['text'] = f"Не угадал!"
 
-        return
+    return
 
     # Если нет, то убеждаем его купить слона!
     res['response']['text'] = f'Все говорят "%s", а ты купи {animal}!' % (
