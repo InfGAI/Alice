@@ -14,28 +14,25 @@ app = Flask(__name__)
 # Устанавливаем уровень логирования
 logging.basicConfig(level=logging.INFO)
 
-# Создадим словарь, чтобы для каждой сессии общения
-# с навыком хранились подсказки, которые видел пользователь.
+# Создадим словарь, чтобы для каждой сессии общения с навыком хранились
+# подсказки, которые видел пользователь.
 # Это поможет нам немного разнообразить подсказки ответов
 # (buttons в JSON ответа).
-# Когда новый пользователь напишет нашему навыку,
-# то мы сохраним в этот словарь запись формата
-# sessionStorage[user_id] = {'suggests': ["Не хочу.", "Не буду.", "Отстань!" ]}
+# Когда новый пользователь напишет нашему навыку, то мы сохраним
+# в этот словарь запись формата
+# sessionStorage[user_id] = {'suggests': ["Не хочу.", "Не буду.", "Отстань!"]}
 # Такая запись говорит, что мы показали пользователю эти три подсказки.
 # Когда он откажется купить слона,
 # то мы уберем одну подсказку. Как будто что-то меняется :)
 sessionStorage = {}
 
-@app.route('/')
-# Тестовый эндпоинт
-def test():
-    return 'OK'
-@app.route('/post', methods=['POST'])
+
+@app.route('/', methods=['POST'])
 # Функция получает тело запроса и возвращает ответ.
 # Внутри функции доступен request.json - это JSON,
 # который отправила нам Алиса в запросе POST
 def main():
-    logging.info(f'Request: {request.json!r}')
+    logging.info('Request: %r', request.json)
 
     # Начинаем формировать ответ, согласно документации
     # мы собираем словарь, который потом отдадим Алисе
@@ -52,7 +49,7 @@ def main():
     # непосредственно за ведение диалога
     handle_dialog(request.json, response)
 
-    logging.info(f'Response:  {response!r}')
+    logging.info('Response: %r', request.json)
 
     # Преобразовываем в JSON и возвращаем
     return jsonify(response)
@@ -99,8 +96,9 @@ def handle_dialog(req, res):
         return
 
     # Если нет, то убеждаем его купить слона!
-    res['response']['text'] = \
-        f"Все говорят '{req['request']['original_utterance']}', а ты купи слона!"
+    res['response']['text'] = 'Все говорят "%s", а ты купи слона!' % (
+        req['request']['original_utterance']
+    )
     res['response']['buttons'] = get_suggests(user_id)
 
 

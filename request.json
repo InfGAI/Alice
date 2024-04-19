@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "locale": "ru-RU",
+    "timezone": "Europe/Moscow",
+    "client_id": "ru.yandex.searchplugin/7.16 (none none; android 4.4.2)",
+    "interfaces": {
+      "screen": {},
+      "account_linking": {},
+      "audio_player": {}
+    }
+  },
+  "request": {
+    "command": "закажи пиццу на улицу льва толстого, 16 на завтра",
+    "original_utterance": "закажи пиццу на улицу льва толстого, 16 на завтра"
+  },
+  "session": {
+    "new": true,
+    "message_id": 4,
+    "session_id": "2eac4854-fce721f3-b845abba-20d60",
+    "skill_id": "3ad36498-f5rd-4079-a14b-788652932056",
+    "user_id": "AC9WC3DF6FCE052E45A4566A48E6B7193774B84814CE49A922E163B8B29881DC"
+  },
+
+  "state": {
+    "session": {
+      "value": 10
+    },
+    "user": {
+      "value": 42
+    },
+    "application": {
+      "value": 37
+    }
+  },
+  "version": "1.0"
+}
